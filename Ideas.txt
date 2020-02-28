@@ -3,8 +3,10 @@ Primary goals:
 	
 Ask again:
 	Relevant limiting weather
+	When it was last updated
 	
 Additional goals:
 	What does the flight status mean?
 	Full weather
 	TAF parsing / likelihood of flying at a certain time
+	Call WWFC
