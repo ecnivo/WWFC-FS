@@ -1,12 +1,42 @@
-Primary goals:
+-----Primary goals:-----
 	Get the Twitter flight status
-	
-Ask again:
+
+-----Ask again:-----
 	Relevant limiting weather
 	When it was last updated
-	
-Additional goals:
+
+-----Additional goals:-----
 	What does the flight status mean?
 	Full weather
 	TAF parsing / likelihood of flying at a certain time
 	Call WWFC
+
+
+-----Development plan.-----
+	Google Assistant
+	Dialogflow
+	G-Cloud Functions
+*		How to host a server?
+			Multi threaded Python? For the server for multiple requests
+			Python SSL (HTTPS?)
+		Test server/service with simple commands
+			Create a client & server on the same machine
+		Create JSON parsing / replying fulfiller
+		Eventually mirror Github to Cloud Source Repo
+	Twitter
+		Get a damn API key I guess
+		Tweepy / scraping?
+	Navcanada
+		Scraping? API for weather?
+
+-----How this server works-----
+	1. Python server exists.
+	2. Server hosts a "handler"
+	3. Create a custom handler for POST requests
+	4. Handler unpacks a JSON, finds what the request is for
+
+
+-----Communication protocol-----
+This is the standards for communication between the server and the Google Dialogflow intents manager
+Next steps: create a communications standard
+Next steps:
