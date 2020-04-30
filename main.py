@@ -1,32 +1,36 @@
-from flask import json
+from flask import json, Flask, abort
+import sys
+
+app = Flask(__name__)
 
 
+@app.route('/')
 def fulfillment(request):
     """Handles fulfillment of actions from DialogFlow using Flask
     args: the HTTP(s) Flask request object (class flask.Request)
     returns: Response HTTP; intended to be a JSON object -- see DialogFlow fulfillment for details"""
 
-    print("fulfillment function activated!")  # DEBUG
-    contentType = request.headers['content-type']
+    print("fulfillment function activated!", file=sys.stdout)  # DEBUG
     requestType = request.method
     jsonRequest = request.get_json(silent=True)
 
     # checks if the request is valid
-    print(" request type " + str(requestType))  # DEBUG
-    print("JSON request is: " + jsonRequest)  # DEBUG
+    print("Request type is:" + str(requestType))  # DEBUG
+    print("JSON request is: " + str(jsonRequest))  # DEBUG
     if not (requestType == "POST" and jsonRequest):
         print("Aborted! not valid JSON")
-        return abort(405)
+        abort(405)
+        return
 
     # TODO implement more checks??
 
     action = jsonRequest["queryResult"]["action"]
-    print("Action parsed " + str(action))  # DEBUG
+    print("Action parsed is: " + str(action))  # DEBUG
 
-    re = {"fulfillment_messages": null}
-    if action == "welcome":
+    response = {"fulfillment_messages": None}
+    if (action == "welcome"):
         # first interaction
-        re["fulfillment_messages"] = {"text": {"text": "TESTING: DO YOU HEAR THIS??"}}  # TESTING
+        response["fulfillment_messages"] = {"text": {"text": "TESTING: DO YOU HEAR THIS??"}}  # DEBUG
     elif (action == "extrainfo"):
         # get when the status was updated, get relevant limiting weather
         return  # TODO REMOVE THIS
@@ -42,8 +46,9 @@ def fulfillment(request):
         return  # TODO REMOVE THIS
     else:
         # yike, throw an error (server fault)
-        return abort(400)
+        abort(400)
+        return
 
-    responseMsg = json.jsonify(re, indent=1)
-    print("Response message formed " + str(responseMsg))
-    return responseMsg
+    responseData = json.jsonify(response)
+    print("Response message formed: " + str(responseData))  # DEBUG
+    return responseData
