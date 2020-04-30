@@ -1,73 +1,49 @@
-import cgi
-import http.server
-import json
-
-class MyHandler(http.server.BaseHTTPRequestHandler):
-    def _set_headers(self, response_code):
-        self.send_response(response_code)  # send "OK"
-        self.send_header('content-type', 'application/json')  # sends JSON header
-        self.end_headers()  # send
-
-    def do_HEAD(self):
-        self._set_headers(200)  # HEAD request only needs header
-
-    def do_GET(self):
-        self._set_headers(405)  # why would you send a GET? Sends 405 code for incorrect method
-
-    def do_POST(self):
-        # parse incoming Webhook Request
-        contentType, pDict = cgi.parse_header(self.headers.getheader("content-type"))
-
-        # not in JSON format, for some reason?
-        if (contentType != "application/json"):
-            self.send_response(400)  # incorrect
-            self.end_headers()
-            return
-
-        len = int(self.headers.getheader("content-length"))
-        msg = json.loads(self.rfile.read(len))  # msg is type 'dict'
-
-        # TODO: build in protection for bad JSON message / formatting? Throw an error?
-        qR = msg["queryResult"]
-        action = lower(qR["action"])
-        print("Got action" + str(action))
-
-        re = {}
-        if action == "welcome":
-            # first interaction
-            re["fulfillment_messages"] = {
-                "text": ["TestResponse; this is to be filled with actual information in the future"]}  # TESTING
-        elif (action == "extrainfo"):
-            # get when the status was updated, get relevant limiting weather
-            return
-        elif (action == "wxfull"):
-            # get full weather brief
-            # yike @ needing to decode
-            return
-        elif (action == "wxsummary"):
-            # just the "likely" limiting weather
-            return
-        elif (action == "updatetime"):
-            # time twitter updated
-            return
-        else:
-            # yike, throw an error
-            return
-
-        # wrap it up, write return header, encode and write return JSON message
-        self._set_headers(200)
-        self.wfile.write(json.dumps(re))
+from flask import json
 
 
-class TweetRetrieval():
-    def __init__(self):
-        return
+def fulfillment(request):
+    """Handles fulfillment of actions from DialogFlow using Flask
+    args: the HTTP(s) Flask request object (class flask.Request)
+    returns: Response HTTP; intended to be a JSON object -- see DialogFlow fulfillment for details"""
 
-    # uhhh do things??
+    print("fulfillment function activated!")  # DEBUG
+    contentType = request.headers['content-type']
+    requestType = request.method
+    jsonRequest = request.get_json(silent=True)
 
+    # checks if the request is valid
+    print(" request type " + str(requestType))  # DEBUG
+    print("JSON request is: " + jsonRequest)  # DEBUG
+    if not (requestType == "POST" and jsonRequest):
+        print("Aborted! not valid JSON")
+        return abort(405)
 
-def dialogflowFirebaseFulfillment(server_class=http.server.HTTPServer, handler_class=MyHandler, port=8000):
-    serverAddress = ('', port)
-    httpd = server_class(serverAddress, handler_class)
-    print("Server started on port ", port)
-    httpd.serve_forever()
+    # TODO implement more checks??
+
+    action = jsonRequest["queryResult"]["action"]
+    print("Action parsed " + str(action))  # DEBUG
+
+    re = {"fulfillment_messages": null}
+    if action == "welcome":
+        # first interaction
+        re["fulfillment_messages"] = {"text": {"text": "TESTING: DO YOU HEAR THIS??"}}  # TESTING
+    elif (action == "extrainfo"):
+        # get when the status was updated, get relevant limiting weather
+        return  # TODO REMOVE THIS
+    elif (action == "wxfull"):
+        # get full weather brief
+        # yike @ needing to decode
+        return  # TODO REMOVE THIS
+    elif (action == "wxsummary"):
+        # just the "likely" limiting weather
+        return  # TODO REMOVE THIS
+    elif (action == "updatetime"):
+        # time twitter updated
+        return  # TODO REMOVE THIS
+    else:
+        # yike, throw an error (server fault)
+        return abort(400)
+
+    responseMsg = json.jsonify(re, indent=1)
+    print("Response message formed " + str(responseMsg))
+    return responseMsg
