@@ -4,13 +4,14 @@
 -----Ask again:-----
 	Relevant limiting weather
 	When it was last updated
-
------Additional goals:-----
 	What does the flight status mean?
 	Full weather
-	TAF parsing / likelihood of flying at a certain time
+	TAF parsing
+	
+-----Additional goals:-----
+	Likelihood of flying at a certain time (in the future?)
 	Call WWFC
-
+	Messenger bot
 
 -----Development plan.-----
 	Google Assistant

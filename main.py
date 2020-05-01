@@ -1,7 +1,16 @@
 from flask import json, Flask, abort
-import sys
+import sys, os
+import tweepy as t
+from google.cloud import secretmanager
 
 app = Flask(__name__)
+project_id = os.environ["GCP_PROJECT"]
+
+TWEET_DEPTH = 50
+
+
+# TWEET_DEPTH dictates how deep to search for tweets. Occasionally, @wwfcstatus will post non-flight status tweets, so
+# this is the maximum number of non-flight-status-related tweets in a row
 
 
 @app.route('/')
@@ -32,7 +41,6 @@ def fulfillment(request):
     if action == "welcome":
         # first interaction. Quickly get the status
         responseWords = "Hi, the current status is: " + str(getStatus())
-        # TODO add something dealing with setting the dialogflow context to the flight status
     elif action == "extrainfo":
         responseWords = "The current status, " + str(
             getStatus()) + ", means that you cannot go outside"  # TODO obviously, make this work
@@ -63,4 +71,25 @@ def fulfillment(request):
 def getStatus():
     """This uses the Twitter API to get the latest flight status update.
     Returns a string for the current flight status"""
-    return "FLY ONLY" #TODO make this lol
+    print("Received a request to contact Twitter!", file=sys.stdout)
+
+    client = secretmanager.SecretManagerServiceClient()
+    apiKey = client.secret_version_path(project_id, "TWITTER_API_KEY", "latest")
+    apiSecret = client.secret_version_path(project_id, "TWITTER_SECRET_KEY", "latest")
+    accessToken = client.secret_version_path(project_id, "TWITTER_ACCESS_TOKEN", "latest")
+    secretToken = client.secret_version_path(project_id, "TWITTER_TOKEN_SECRET", "latest")
+    if apiKey and apiSecret and accessToken and secretToken:
+        print("Got the keys!")
+
+    auth = t.AppAuthHandler(accessToken, secretToken)
+    # api = t.API(auth_handler=auth, parser=t.parsers.JSONParser())
+    api = t.API(auth_handler=auth)
+    statusesJSON = api.user_timeline(user="wwfcstatus", count=TWEET_DEPTH)
+    print("DEBUG: got JSON statuses here... " + str(statusesJSON))
+    # statusesList = []
+    # for s in statusesJSON:
+    #     statusesList.append(json.loads(s._json))
+    #
+    # print("Statuses retrieved: " + str(statusesList), file=sys.stdout)  # DEBUG
+
+    return "FLY ONLY"  # TODO make this lol
