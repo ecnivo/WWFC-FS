@@ -31,48 +31,61 @@ def fulfillment(request: Flask.request_class):
     print("Action parsed is: " + str(action), file=sys.stdout)  # DEBUG
 
     response = {}
-    responseWords = "Yikes, something went wrong. Contact the developer for help?"  # This is the default response text
+    speechResponse = "Yikes, something went wrong. Contact the developer for help?"  # This is the default response text
     if action == "welcome":
         # first interaction. Quickly get the status
         flightStatus = getFlightStatus()
         updateTime = flightStatus['time']
         if updateTime.date() == datetime.today().date():  # was updated today
-            responseWords = "Hi, the status is currently " + flightStatus['status']
+            speechResponse = "Hi, the status is currently " + flightStatus['status']
+            displayResponse = flightStatus['status']
         else:  # status not current as of today
-            responseWords = "Hi, the status hasn't yet been updated today. It was last " + flightStatus[
+            speechResponse = "Hi, the status hasn't yet been updated today. It was last " + flightStatus[
                 'status'] + " as of " + formatDatesAndTimesTheWayIWantThem(updateTime)
+            displayResponse = flightStatus['status'] + " as of " + formatDatesAndTimesTheWayIWantThem(updateTime)
 
     elif action == "extrainfo":
         flightStatus = getFlightStatus()['status']
-        responseWords = "The current status, " + flightStatus + ", means "
+        speechResponse = "The current status, " + flightStatus + ", means "
+        displayResponse = flightStatus + " means: "
         if flightStatus == "No Fly":
-            responseWords += "nobody is allowed to go flying."
+            speechResponse += "nobody is allowed to go flying."
+            displayResponse += "nobody is allowed to go flying."
         elif flightStatus == "Dual Only":
-            responseWords += "you may only fly with an instructor"
+            speechResponse += "you may only fly with an instructor"
+            displayResponse += "you may only fly with an instructor"
         elif flightStatus == "Circuits Only for Students":
-            responseWords += "during the day, if you are not licensed, you can only be signed out to the circuit. If it" \
-                             " is nighttime and you are not night rated, you can only be signed out for night circuits."
+            speechResponse += "during the day, if you are not licensed, you can only be signed out to the circuit. If it" \
+                              " is nighttime and you are not night rated, you can only be signed out for night circuits."
+            displayResponse += "Day: Not licensed - solo circuits only. Night: no night rating - night circuits only. Any time: Licensed - no restrictions"
         elif flightStatus == "No Student Solo":
-            responseWords += "you may not go flying unless you are licensed."
+            speechResponse += "you may not go flying unless you are licensed."
+            displayResponse += "licensed pilots only. Students must be with an instructor."
         elif flightStatus == "No Student Solo Cross-Country":
-            responseWords += "You may only go to the circuit or practice area if you are not licensed."
+            speechResponse += "you may only go to the circuit or practice area if you are not licensed."
+            displayResponse += "No license - circuit or practice area"
         elif flightStatus == "No Restrictions":
-            responseWords += "everybody may go flying so long as they are current."
+            speechResponse += "everybody may go flying so long as they are current."
+            displayResponse += "everybody may go flying!"
 
     elif action == "wxfull":
         # get full weather brief
         # yike @ needing to decode a METAR
-        responseWords = "The local weather at CYKF is "  # TODO get weather information from METAR, make this work?
+        speechResponse = "The local weather at CYKF is "  # TODO get weather information from METAR, make this work?
+        displayResponse = speechResponse #DEBUG change later
 
     elif action == "wxsummary":
         # just the "likely" limiting weather
-        responseWords = "The status is likely " + getFlightStatus()[
+        speechResponse = "The status is likely " + getFlightStatus()[
             'status'] + " because of"  # TODO some way to get navcanada weather
+        displayResponse = speechResponse
 
     elif action == "updatetime":
         # time twitter updated
-        updateTime = getFlightStatus()['time']  # datetime.datetime object
-        responseWords = "The flight status was updated " + formatDatesAndTimesTheWayIWantThem(getFlightStatus()['time'])
+        status = getFlightStatus()
+        updateTime = status['time']  # datetime.datetime object
+        speechResponse = "The flight status was updated " + formatDatesAndTimesTheWayIWantThem(updateTime)
+        displayResponse = status['status'] + " as of " + formatDatesAndTimesTheWayIWantThem(updateTime)
 
     else:
         # yike, throw an error (server fault)
@@ -81,19 +94,20 @@ def fulfillment(request: Flask.request_class):
 
     response["fulfillmentMessages"] = [{"text":
                                             {"text":
-                                                 [responseWords]
+                                                 [speechResponse]
                                              }
                                         }]
     response["payload"] = {"google":
                                {"expectUserResponse": True,
                                 "richResponse":
                                     {"items":
-                                         [{"simpleResponse":
-                                               {"textToSpeech": responseWords,
-                                                "displayText": responseWords}
-                                           }
-                                          ]
-                                     }
+                                        [{"simpleResponse":
+                                            {
+                                                "textToSpeech": "<prosody rate=\"fast\" pitch=\"+1st\">" + speechResponse + "</prosody>",
+                                                "displayText": displayResponse}
+                                        }
+                                        ]
+                                    }
                                 }
                            }
     responseData = json.jsonify(response)
@@ -152,7 +166,7 @@ def formatDatesAndTimesTheWayIWantThem(t: datetime):
     :returns: a string."""
     date = t.date()
     today = datetime.today().date()
-    if date == today: #special formatting for today
+    if date == today:  # special formatting for today
         hoursAgo = round((datetime.now() - t).total_seconds() / 3600, ndigits=1)
         if hoursAgo < 1:
             return round((datetime.now() - t).total_seconds() / 60, ndigits=1) + " minutes ago"
@@ -163,4 +177,4 @@ def formatDatesAndTimesTheWayIWantThem(t: datetime):
     elif date == (today - timedelta(days=1)):
         return " yesterday at " + t.strftime("%H") + " " + t.strftime("%p")
     else:
-        return " on " + t.strftime("%b") + " " + t.strftime("%d")
+        return t.strftime("%b") + " " + t.strftime("%d")
