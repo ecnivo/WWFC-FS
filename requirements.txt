@@ -2,3 +2,5 @@ Flask
 tweepy==3.8.0
 google-cloud-secret-manager
 datetime
+requests
+pytz
